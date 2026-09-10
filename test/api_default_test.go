@@ -11,74 +11,138 @@ package client_test
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+
+	openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
-func Test_openapi_DefaultAPIService(t *testing.T) {
+var serviceURL = "https://localhost:8443/se/api"
 
+func getTLSConfiguration() (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}
+
+	caCert, err := os.ReadFile("tls/cacerts.pem")
+	if err != nil {
+		return nil, fmt.Errorf("Loading ca certificate failed: %w", err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	tlsConfig.RootCAs = caCertPool
+
+	cert, err := tls.LoadX509KeyPair("tls/cert_client.pem", "tls/prk_client.pem")
+	if err != nil {
+		return nil, fmt.Errorf("Loading client key pair failed: %w", err)
+	}
+	tlsConfig.Certificates = []tls.Certificate{cert}
+	return tlsConfig, nil
+}
+
+func Test_openapi_DefaultAPIService(t *testing.T) {
 	configuration := openapiclient.NewConfiguration()
+	if tlsConfig, err := getTLSConfiguration(); err == nil {
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		httpClient := &http.Client{
+			Transport: transport,
+		}
+
+		configuration.HTTPClient = httpClient
+	}
+	configuration.Servers = openapiclient.ServerConfigurations{
+		{
+			URL:         serviceURL,
+			Description: "URL of the SmartCard-HSM Cloud Service",
+		},
+	}
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test DefaultAPIService GetHSM", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var hsmId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetHSM(context.Background(), hsmId).Execute()
+		hsms, httpRes, err := apiClient.DefaultAPI.GetHSMList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, hsms)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, expectedHSM := range hsms {
+			hsm, httpRes, err := apiClient.DefaultAPI.GetHSM(context.Background(), expectedHSM.Id).Execute()
+
+			require.Nil(t, err)
+			require.NotNil(t, hsm)
+			assert.Equal(t, 200, httpRes.StatusCode)
+			require.Equal(t, expectedHSM, *hsm)
+		}
 
 	})
 
 	t.Run("Test DefaultAPIService GetHSMList", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.GetHSMList(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService GetKey", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var keyId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKey(context.Background(), keyId).Execute()
+		keys, httpRes, err := apiClient.DefaultAPI.GetKeyList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, keys)
 		assert.Equal(t, 200, httpRes.StatusCode)
 
+		for _, expectedKey := range keys {
+			key, httpRes, err := apiClient.DefaultAPI.GetKey(context.Background(), expectedKey.Id).Execute()
+
+			require.Nil(t, err)
+			require.NotNil(t, key)
+			assert.Equal(t, 200, httpRes.StatusCode)
+			require.Equal(t, expectedKey, *key)
+		}
 	})
 
 	t.Run("Test DefaultAPIService GetKeyDomain", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var kdId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKeyDomain(context.Background(), kdId).Execute()
+		keys, httpRes, err := apiClient.DefaultAPI.GetKeyList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, keys)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, key := range keys {
+			keyDomain, httpRes, err := apiClient.DefaultAPI.GetKeyDomain(context.Background(), *key.KeyDomain).Execute()
+
+			require.Nil(t, err)
+			require.NotNil(t, keyDomain)
+			assert.Equal(t, 200, httpRes.StatusCode)
+			require.Equal(t, *key.KeyDomain, keyDomain.Id)
+		}
 
 	})
 
 	t.Run("Test DefaultAPIService GetKeyDomainList", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.GetKeyDomainList(context.Background()).Execute()
 
@@ -90,37 +154,52 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 	t.Run("Test DefaultAPIService GetKeyForHSM", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var hsmId string
-		var keyId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKeyForHSM(context.Background(), hsmId, keyId).Execute()
+		hsms, httpRes, err := apiClient.DefaultAPI.GetHSMList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, hsms)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, hsm := range hsms {
+			for _, expectedKey := range hsm.Keys {
+				key, httpRes, err := apiClient.DefaultAPI.GetKeyForHSM(context.Background(), hsm.Id, expectedKey.Id).Execute()
+
+				require.Nil(t, err)
+				require.NotNil(t, key)
+				assert.Equal(t, 200, httpRes.StatusCode)
+				require.Equal(t, expectedKey, *key)
+			}
+		}
 
 	})
 
 	t.Run("Test DefaultAPIService GetKeyForKeyDomain", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var kdId string
-		var keyId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKeyForKeyDomain(context.Background(), kdId, keyId).Execute()
+		keyDomains, httpRes, err := apiClient.DefaultAPI.GetKeyDomainList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, keyDomains)
 		assert.Equal(t, 200, httpRes.StatusCode)
 
+		for _, keyDomain := range keyDomains {
+			for _, expectedKey := range keyDomain.Keys {
+				key, httpRes, err := apiClient.DefaultAPI.GetKeyForKeyDomain(context.Background(), keyDomain.Id, expectedKey.Id).Execute()
+
+				require.Nil(t, err)
+				require.NotNil(t, key)
+				assert.Equal(t, 200, httpRes.StatusCode)
+				require.Equal(t, expectedKey, *key)
+			}
+		}
 	})
 
 	t.Run("Test DefaultAPIService GetKeyList", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.GetKeyList(context.Background()).Execute()
 
@@ -132,43 +211,116 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 	t.Run("Test DefaultAPIService GetKeysForHSM", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var hsmId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKeysForHSM(context.Background(), hsmId).Execute()
+		hsms, httpRes, err := apiClient.DefaultAPI.GetHSMList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, hsms)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, hsm := range hsms {
+			keys, httpRes, err := apiClient.DefaultAPI.GetKeysForHSM(context.Background(), hsm.Id).Execute()
+
+			require.Nil(t, err)
+			require.NotNil(t, keys)
+			assert.Equal(t, 200, httpRes.StatusCode)
+			require.ElementsMatch(t, hsm.Keys, keys)
+
+		}
 
 	})
 
 	t.Run("Test DefaultAPIService GetKeysForKeyDomain", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var kdId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.GetKeysForKeyDomain(context.Background(), kdId).Execute()
+		keyDomains, httpRes, err := apiClient.DefaultAPI.GetKeyDomainList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, keyDomains)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, keyDomain := range keyDomains {
+			keys, httpRes, err := apiClient.DefaultAPI.GetKeysForKeyDomain(context.Background(), keyDomain.Id).Execute()
+
+			require.Nil(t, err)
+			require.NotNil(t, keys)
+			assert.Equal(t, 200, httpRes.StatusCode)
+			require.ElementsMatch(t, keyDomain.Keys, keys)
+
+		}
 
 	})
 
 	t.Run("Test DefaultAPIService SignHash", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		//t.Skip("skip test") // remove to run test
 
-		var keyId string
-
-		resp, httpRes, err := apiClient.DefaultAPI.SignHash(context.Background(), keyId).Execute()
+		keys, httpRes, err := apiClient.DefaultAPI.GetKeyList(context.Background()).Execute()
 
 		require.Nil(t, err)
-		require.NotNil(t, resp)
+		require.NotNil(t, keys)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
+		for _, key := range keys {
+			if key.Type == openapiclient.AES {
+				continue
+			}
+
+			var signatureInput *openapiclient.SignatureInput
+
+			for _, alg := range key.Algorithms {
+				var hash string
+				switch alg {
+				case openapiclient.DEFAULT_SIGN:
+					fallthrough
+				case openapiclient.ECDSA:
+					fallthrough
+				case openapiclient.ECDSA_SHA256:
+					fallthrough
+				case openapiclient.RSA_PSS:
+					fallthrough
+				case openapiclient.RSA_PSS_SHA256:
+					hash = strings.Repeat("00", 32)
+				case openapiclient.RSA_PSS_SHA1:
+					fallthrough
+				case openapiclient.ECDSA_SHA1:
+					hash = strings.Repeat("00", 20)
+				case openapiclient.ECDSA_SHA384:
+					hash = strings.Repeat("00", 48)
+				case openapiclient.RSA_PSS_SHA512:
+					fallthrough
+				case openapiclient.ECDSA_SHA512:
+					hash = strings.Repeat("00", 64)
+				default:
+					continue
+				}
+
+				signatureInput = openapiclient.NewSignatureInput(hash, alg)
+				resp, httpRes, err := apiClient.DefaultAPI.SignHash(context.Background(), key.Id).SignatureInput(*signatureInput).Execute()
+				require.Nil(t, err)
+				require.NotNil(t, resp)
+				assert.Equal(t, 200, httpRes.StatusCode)
+			}
+
+			if len(key.Algorithms) == 0 {
+				var alg openapiclient.KeyAlgorithm
+				if key.Type == openapiclient.RSA {
+					alg = openapiclient.RSA_PSS
+				} else {
+					alg = openapiclient.ECDSA
+				}
+
+				signatureInput = openapiclient.NewSignatureInput("0102030405060708091011121314151617181920212223342526272829303132", alg)
+				resp, httpRes, err := apiClient.DefaultAPI.SignHash(context.Background(), key.Id).SignatureInput(*signatureInput).Execute()
+				assert.NoError(t, err)
+				//require.Nil(t, err)
+				assert.NotNil(t, resp)
+				//require.NotNil(t, resp)
+				assert.Equal(t, 200, httpRes.StatusCode)
+			}
+		}
 
 	})
 
