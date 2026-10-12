@@ -20,40 +20,18 @@ type KeyAlgorithm string
 
 // List of KeyAlgorithm
 const (
+	RSA_PKCS1 KeyAlgorithm = "RSA_PKCS1"
 	RSA_PSS KeyAlgorithm = "RSA_PSS"
-	RSA_PSS_SHA1 KeyAlgorithm = "RSA_PSS_SHA1"
-	RSA_PSS_SHA256 KeyAlgorithm = "RSA_PSS_SHA256"
-	RSA_PSS_SHA512 KeyAlgorithm = "RSA_PSS_SHA512"
 	ECDSA KeyAlgorithm = "ECDSA"
-	ECDSA_SHA1 KeyAlgorithm = "ECDSA_SHA1"
-	ECDSA_SHA256 KeyAlgorithm = "ECDSA_SHA256"
-	ECDSA_SHA384 KeyAlgorithm = "ECDSA_SHA384"
-	ECDSA_SHA512 KeyAlgorithm = "ECDSA_SHA512"
 	DEFAULT_SIGN KeyAlgorithm = "DEFAULT_SIGN"
-	CBC_ENC KeyAlgorithm = "CBC_ENC"
-	CBC_DEC KeyAlgorithm = "CBC_DEC"
-	CMAC KeyAlgorithm = "CMAC"
-	WRAP KeyAlgorithm = "WRAP"
-	DERIVE_SP800_56_C KeyAlgorithm = "DERIVE_SP800_56C"
 )
 
 // All allowed values of KeyAlgorithm enum
 var AllowedKeyAlgorithmEnumValues = []KeyAlgorithm{
+	"RSA_PKCS1",
 	"RSA_PSS",
-	"RSA_PSS_SHA1",
-	"RSA_PSS_SHA256",
-	"RSA_PSS_SHA512",
 	"ECDSA",
-	"ECDSA_SHA1",
-	"ECDSA_SHA256",
-	"ECDSA_SHA384",
-	"ECDSA_SHA512",
 	"DEFAULT_SIGN",
-	"CBC_ENC",
-	"CBC_DEC",
-	"CMAC",
-	"WRAP",
-	"DERIVE_SP800_56C",
 }
 
 func (v *KeyAlgorithm) UnmarshalJSON(src []byte) error {

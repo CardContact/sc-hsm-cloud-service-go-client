@@ -70,7 +70,11 @@ func (s *Signer) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byt
 
 	var algo KeyAlgorithm
 	if _, ok := s.publicKey.(*rsa.PublicKey); ok {
-		algo = RSA_PSS
+		if _, ok := opts.(*rsa.PSSOptions); ok {
+			algo = RSA_PSS
+		} else {
+			algo = RSA_PKCS1
+		}
 	} else {
 		algo = ECDSA
 	}
